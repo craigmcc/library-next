@@ -8,6 +8,18 @@
     "start": "next start",
     "lint": "next lint"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/craigmcc/library-next.git"
+  },
+  "keywords": [
+    "nextjs",
+    "postgres",
+    "prisma",
+    "react",
+    "typescript"
+  ],
+  "license": "Apache-2.0",
   "dependencies": {
     "@types/node": "20.3.1",
     "@types/react": "18.2.14",

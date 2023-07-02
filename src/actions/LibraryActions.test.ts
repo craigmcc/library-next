@@ -264,6 +264,136 @@ describe("LibraryActions Functional Tests", () => {
 
     });
 
+    describe("LibraryActions.remove()", () => {
+
+        it("should fail on invalid ID", async () => {
+            const INVALID_ID = -1;
+            try {
+                await LibraryActions.remove(INVALID_ID);
+                expect.fail("Should have thrown NotFound");
+            } catch (error) {
+                if (error instanceof NotFound) {
+                    expect(error.message).to.include
+                    (`id: Missing Library ${INVALID_ID}`);
+                } else {
+                    expect.fail(`Should not have thrown '${error}'`);
+                }
+            }
+        });
+
+        it("should pass on valid ID", async () => {
+            const INPUT = await LibraryActions.exact(SeedData.LIBRARY_NAME_SECOND);
+            const OUTPUT = await LibraryActions.remove(INPUT.id);
+            compareLibraryOld(OUTPUT, INPUT);
+            try {
+                await LibraryActions.remove(INPUT.id);
+                expect.fail("Should have thrown NotFound after remove");
+            } catch (error) {
+                if (error instanceof NotFound) {
+                    expect(error.message).to.include
+                    (`id: Missing Library ${INPUT.id}`);
+                } else {
+                    expect.fail(`Should not have thrown '${error}'`);
+                }
+            }
+        });
+
+    });
+
+    // TODO: LibraryActions.series()
+
+    // TODO: LibraryActions.stories()
+
+    describe("LibraryActions.update()", () => {
+
+        it("should fail on duplicate name", async () => {
+            const ORIGINAL =
+                await LibraryActions.exact(SeedData.LIBRARY_NAME_FIRST);
+            const INPUT: Prisma.LibraryUpdateInput = {
+                name: SeedData.LIBRARY_NAME_SECOND,
+            }
+            try {
+                await LibraryActions.update(ORIGINAL.id, INPUT);
+                expect.fail("Should have thrown NotUnique");
+            } catch (error) {
+                if (error instanceof NotUnique) {
+                    expect(error.message).to.include
+                    (`name: Library name '${INPUT.name}' is already in use`);
+                } else {
+                    expect.fail(`Should not have thrown '${error}'`);
+                }
+            }
+        });
+
+        it("should fail on duplicate scope", async () => {
+            const ORIGINAL =
+                await LibraryActions.exact(SeedData.LIBRARY_NAME_THIRD);
+            const INPUT: Prisma.LibraryUpdateInput = {
+                scope: SeedData.LIBRARY_SCOPE_SECOND,
+            }
+            try {
+                await LibraryActions.update(ORIGINAL.id, INPUT);
+                expect.fail("Should have thrown NotUnique");
+            } catch (error) {
+                if (error instanceof NotUnique) {
+                    expect(error.message).to.include
+                    (`scope: Library scope '${INPUT.scope}' is already in use`);
+                } else {
+                    expect.fail(`Should not have thrown '${error}'`);
+                }
+            }
+        });
+
+        it("should pass on no change update", async () => {
+            const INPUT =
+                await LibraryActions.exact(SeedData.LIBRARY_NAME_SECOND);
+            const UPDATE: Prisma.LibraryUpdateInput = {
+                active: INPUT.active,
+                name: INPUT.name,
+                notes: INPUT.notes,
+                scope: INPUT.scope,
+            }
+            try {
+                const OUTPUT = await LibraryActions.update(INPUT.id, UPDATE);
+                compareLibraryOld(OUTPUT, INPUT);
+            } catch (error) {
+                expect.fail(`Should not have thrown '${error}'`);
+            }
+        })
+
+        it("should pass on no data update", async () => {
+            const INPUT =
+                await LibraryActions.exact(SeedData.LIBRARY_NAME_THIRD);
+            const UPDATE: Prisma.LibraryUpdateInput = {};
+            try {
+                const OUTPUT = await LibraryActions.update(INPUT.id, UPDATE);
+                compareLibraryOld(OUTPUT, INPUT);
+            } catch (error) {
+                expect.fail(`Should not have thrown '${error}'`);
+            }
+        })
+
+        it("should pass on valid change update", async () => {
+            const INPUT =
+                await LibraryActions.exact(SeedData.LIBRARY_NAME_SECOND);
+            const UPDATE: Prisma.LibraryUpdateInput = {
+                active: INPUT.active ? !INPUT.active : undefined,
+                name: INPUT.name + " New",
+                notes: INPUT.notes ? INPUT.notes + " new" : "New Note Value",
+                scope: INPUT.scope + "new",
+            }
+            try {
+                const OUTPUT = await LibraryActions.update(INPUT.id, UPDATE);
+                compareLibraryOld(OUTPUT, UPDATE as Library);
+            } catch (error) {
+                expect.fail(`Should not have thrown '${error}'`);
+            }
+        })
+
+    });
+
+    // TODO: LibraryActions.volumes()
+
 });
 
 // Private Objects -------------------------------------------------------

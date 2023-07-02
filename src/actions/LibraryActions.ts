@@ -227,9 +227,83 @@ export const insert = async (library: Prisma.LibraryCreateInput): Promise<Librar
     }
 }
 
+/**
+ * Remove and return the specified Library.
+ *
+ * @param libraryId                     ID of the Library to be removed
+ *
+ * @throws NotFound                     If no such Library is found
+ * @throws ServerError                  If a low level error is thrown
+ */
+export const remove = async (libraryId: number): Promise<LibraryPlus> => {
+    await find(libraryId); // May throw NotFound
+    try {
+        const result = await prisma.library.delete({
+            where: {
+                id: libraryId,
+            }
+        });
+        return result as LibraryPlus;
+    } catch (error) {
+        throw new ServerError(
+            error as Error,
+            "LibraryActions.remove",
+        );
+    }
+}
+
 // TODO: LibraryActions.series()
 
 // TODO: LibraryActions.stories()
+
+/**
+ * Update and return the specified Library.
+ *
+ * @param libraryId                     ID of the Library to be updated
+ * @param library                       Updated data
+ *
+ * @throws BadRequest                   If validation fails
+ * @throws NotFound                     If no such Library is found
+ * @throws NotUnique                    If a unique key violation is attempted
+ * @throws ServerError                  If some other error is thrown
+ */
+export const update = async (libraryId: number, library: Prisma.LibraryUpdateInput): Promise<LibraryPlus> => {
+    if (library.scope && (typeof library.scope === "string") && !validateLibraryScope(library.scope)) {
+        throw new BadRequest(
+            `scope: Scope '${library.scope}' must not contain spaces`,
+            "LibraryActions.update",
+        );
+    }
+    if (library.name && (typeof library.name === "string") && (!await uniqueName(libraryId, library.name))) {
+        throw new NotUnique(
+            `name: Library name '${library.name}' is already in use`,
+            "LibraryActions.update",
+        )
+    }
+    if (library.scope && (typeof library.scope === "string") && (!await uniqueScope(libraryId, library.scope))) {
+        throw new NotUnique(
+            `scope: Library scope '${library.scope}' is already in use`,
+            "LibraryActions.update",
+        )
+    }
+    try {
+        const result = await prisma.library.update({
+            data: {
+                ...library,
+                id: libraryId,      // No cheating
+            },
+            where: {
+                id: libraryId,
+            }
+        });
+        return result as LibraryPlus;
+    } catch (error) {
+        throw new ServerError(
+            error as Error,
+            "LibraryActions.update"
+        );
+    }
+}
 
 // TODO: LibraryActions.volumes()
 
@@ -314,11 +388,7 @@ export const take = (options?: PaginationOptions): number | undefined => {
 export const uniqueName = async (libraryId: number | null, name: string): Promise<boolean> => {
     try {
         const library = await exact(name);
-        if (library) {
-            return (library.id === libraryId);  // Corresponds to this Library
-        } else {
-            return true; // Definitely unique
-        }
+        return (library.id === libraryId);  // Corresponds to this Library
     } catch (error) {
         if (error instanceof NotFound) {
             return true; // Definitely unique
@@ -356,7 +426,7 @@ export const uniqueScope = async (libraryId: number | null, scope: string): Prom
         } else {
             throw new ServerError(
                 error as Error,
-                "LibraryActions.uniqueName"
+                "LibraryActions.uniqueScope"
             );
         }
     }

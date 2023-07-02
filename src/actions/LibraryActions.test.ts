@@ -195,6 +195,75 @@ describe("LibraryActions Functional Tests", () => {
 
     });
 
+    describe("LibraryActions.insert()", () => {
+
+        it("should fail on duplicate name", async () => {
+            const INPUT: Prisma.LibraryCreateInput = {
+                name: SeedData.LIBRARIES[0].name,
+                scope: "validscope",
+            }
+            try {
+                await LibraryActions.insert(INPUT);
+                expect.fail("Should have thrown NotUnique");
+            } catch (error) {
+                if (error instanceof NotUnique) {
+                    expect(error.message).to.include
+                    (`name: Library name '${INPUT.name}' is already in use`);
+                } else {
+                    expect.fail(`Should not have thrown '${error}'`);
+                }
+            }
+        });
+
+        it("should fail on duplicate scope", async () => {
+            const INPUT: Prisma.LibraryCreateInput = {
+                name: "Valid Name",
+                scope: SeedData.LIBRARIES[0].scope,
+            }
+            try {
+                await LibraryActions.insert(INPUT);
+                expect.fail("Should have thrown NotUnique");
+            } catch (error) {
+                if (error instanceof NotUnique) {
+                    expect(error.message).to.include
+                    (`scope: Library scope '${INPUT.scope}' is already in use`);
+                } else {
+                    expect.fail(`Should not have thrown '${error}'`);
+                }
+            }
+        });
+
+        it("should fail on invalid input data", async () => {
+            const INPUT: Prisma.LibraryCreateInput = {
+                name: "Valid Name",
+                scope: "invalid scope",
+            }
+            try {
+                await LibraryActions.insert(INPUT);
+                expect.fail("Should have thrown BadRequest");
+            } catch (error) {
+                if (error instanceof BadRequest) {
+                    expect(error.message).to.include
+                    (`scope: Scope '${INPUT.scope}' must not contain spaces`);
+                } else {
+                    expect.fail(`Should not have thrown '${error}`);
+                }
+            }
+        });
+
+        it("should pass on valid input data", async () => {
+            const INPUT: Prisma.LibraryCreateInput = {
+                active: false,
+                name: "Valid Name",
+                notes: "Valid notes",
+                scope: "validscope",
+            }
+            const OUTPUT = await LibraryActions.insert(INPUT);
+            compareLibraryNew(OUTPUT, INPUT as Library);
+        });
+
+    });
+
 });
 
 // Private Objects -------------------------------------------------------

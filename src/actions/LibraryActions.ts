@@ -19,7 +19,8 @@ import {
 
 import prisma from "../prisma";
 import {PaginationOptions} from "../types/types";
-import {NotFound, ServerError} from "../util/HttpErrors";
+import {validateLibraryScope} from "../util/ApplicationValidators";
+import {BadRequest, NotFound, NotUnique, ServerError} from "../util/HttpErrors";
 
 // Public Types --------------------------------------------------------------
 
@@ -109,6 +110,8 @@ export const all = async (options?: AllOptions): Promise<LibraryPlus[]> => {
     }
 }
 
+// TODO: LibraryActions.authors()
+
 /**
  * Return the Library instance with the specified name, or throw NotFound.
  *
@@ -184,6 +187,52 @@ export const find = async (libraryId: number, options?: FindOptions): Promise<Li
     }
 }
 
+/**
+ * Create and return a new Library instance, if it satisfies validation.
+ *
+ * @param library                       Library to be created
+ *
+ * @throws BadRequest                   If validation fails
+ * @throws NotUnique                    If a unique key violation is attempted
+ * @throws ServerError                  If some other error occurs
+ */
+export const insert = async (library: Prisma.LibraryCreateInput): Promise<LibraryPlus> => {
+    if (!validateLibraryScope(library.scope)) {
+        throw new BadRequest(
+            `scope: Scope '${library.scope}' must not contain spaces`,
+            "LibraryActions.insert",
+        );
+    }
+    if (!await uniqueName(null, library.name)) {
+        throw new NotUnique(
+            `name: Library name '${library.name}' is already in use`,
+            "LibraryActions.insert",
+        )
+    }
+    if (!await uniqueScope(null, library.scope)) {
+        throw new NotUnique(
+            `scope: Library scope '${library.scope}' is already in use`,
+            "LibraryActions.insert",
+        )
+    }
+    try {
+        const result =
+            await prisma.library.create({ data: library });
+        return result as LibraryPlus;
+    } catch (error) {
+        throw new ServerError(
+            error as Error,
+            "LibraryActions.insert"
+        );
+    }
+}
+
+// TODO: LibraryActions.series()
+
+// TODO: LibraryActions.stories()
+
+// TODO: LibraryActions.volumes()
+
 // Support Functions ---------------------------------------------------------
 
 /**
@@ -253,6 +302,63 @@ export const take = (options?: PaginationOptions): number | undefined => {
         return Number(options.limit);
     } else {
         return undefined;
+    }
+}
+
+/**
+ * Return true if the proposed name is unique.
+ *
+ * @param libraryId                     ID of the existing Library (if any)
+ * @param name                          Proposed Library name
+ */
+export const uniqueName = async (libraryId: number | null, name: string): Promise<boolean> => {
+    try {
+        const library = await exact(name);
+        if (library) {
+            return (library.id === libraryId);  // Corresponds to this Library
+        } else {
+            return true; // Definitely unique
+        }
+    } catch (error) {
+        if (error instanceof NotFound) {
+            return true; // Definitely unique
+        } else {
+            throw new ServerError(
+                error as Error,
+                "LibraryActions.uniqueName"
+            );
+        }
+    }
+}
+
+/**
+ * Return true if the proposed scope is unique.
+ *
+ * @param libraryId                     ID of the existing Library (if any)
+ * @param scope                         Proposed Library scope
+ */
+export const uniqueScope = async (libraryId: number | null, scope: string): Promise<boolean> => {
+    try {
+        const library =
+            await prisma.library.findUnique({
+                where: {
+                    scope: scope,
+                }
+            });
+        if (library) {
+            return (library.id === libraryId);  // Corresponds to this Library
+        } else {
+            return true; // Definitely unique
+        }
+    } catch (error) {
+        if (error instanceof NotFound) {
+            return true; // Definitely unique
+        } else {
+            throw new ServerError(
+                error as Error,
+                "LibraryActions.uniqueName"
+            );
+        }
     }
 }
 

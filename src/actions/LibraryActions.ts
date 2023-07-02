@@ -18,8 +18,8 @@ import {
 // Internal Modules ----------------------------------------------------------
 
 import prisma from "../prisma";
-import {PaginationOptions} from "@/types/types";
-import {ServerError} from "../util/HttpErrors";
+import {PaginationOptions} from "../types/types";
+import {NotFound, ServerError} from "../util/HttpErrors";
 
 // Public Types --------------------------------------------------------------
 
@@ -77,7 +77,7 @@ type MatchOptions = {
     scope?: string;
 }
 
-// Action CRUD Functions -----------------------------------------------------
+// Public Actions ------------------------------------------------------------
 
 /**
  * Return all Library instances that match the specified criteria.
@@ -98,13 +98,52 @@ export const all = async (options?: AllOptions): Promise<LibraryPlus[]> => {
         where: where(options),
     }
     try {
-        const results = await prisma.library.findMany(args);
+        const results =
+            await prisma.library.findMany(args);
         return results as LibraryPlus[];
     } catch (error) {
         throw new ServerError(
             error as Error,
             "LibraryActions.all",
         )
+    }
+}
+
+/**
+ * Return the Library instance with the specified libraryId, or throw NotFound.
+ *
+ * @param libraryId                     ID of the requested Library
+ * @param options                       Optional include query parameters
+ *
+ * @throws NotFound                     If no such Library is found
+ * @throws ServerError                  If a low level error is thrown
+ */
+export const find = async (libraryId: number, options?: FindOptions): Promise<LibraryPlus> => {
+    try {
+        const result =
+            await prisma.library.findUnique({
+                include: include(options),
+                where: {
+                    id: libraryId,
+                }
+            });
+        if (result) {
+            return result as LibraryPlus;
+        } else {
+            throw new NotFound(
+                `id: Missing Library ${libraryId}`,
+                "LibraryActions.find"
+            )
+        }
+    } catch (error) {
+        if (error instanceof NotFound) {
+            throw error;
+        } else {
+            throw new ServerError(
+                error as Error,
+                "LibraryActions.find",
+            )
+        }
     }
 }
 

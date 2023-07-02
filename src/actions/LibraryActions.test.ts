@@ -109,6 +109,60 @@ describe("LibraryActions Functional Tests", () => {
 
     });
 
+    describe("LibraryActions.find()", () => {
+
+        it("should fail on invalid id", async () => {
+            const INVALID_ID = 9999;
+            try {
+                await LibraryActions.find(INVALID_ID);
+                expect.fail("Should have thrown NotFound");
+            } catch (error) {
+                if (error instanceof NotFound) {
+                    expect(error.message).includes(`Missing Library ${INVALID_ID}`);
+                } else {
+                    expect.fail(`Should not have thrown '${error}'`);
+                }
+            }
+        });
+
+        it("should pass on included relations", async () => {
+            const INPUTS = await LibraryActions.all();
+            for (const INPUT of INPUTS) {
+                try {
+                    const OUTPUT =
+                        await LibraryActions.find(INPUT.id, {
+                            withAuthors: true,
+                            withSeries: true,
+                            withStories: true,
+                            withVolumes: true,
+                        });
+                    if (OUTPUT.name !== SeedData.LIBRARY_NAME_THIRD) {
+                        expect(OUTPUT.authors.length).to.be.greaterThan(0);
+                        expect(OUTPUT.series.length).to.be.greaterThan(0);
+                        expect(OUTPUT.stories.length).to.be.greaterThan(0);
+                        expect(OUTPUT.volumes.length).to.be.greaterThan(0);
+                    }
+                } catch (error) {
+                    expect.fail(`Should not have thrown '${error}`);
+                }
+            }
+        });
+
+        it("should pass on valid ids", async () => {
+            const INPUTS = await LibraryActions.all();
+            for (const INPUT of INPUTS) {
+                try {
+                    const OUTPUT =
+                        await LibraryActions.find(INPUT.id);
+                    compareLibraryOld(OUTPUT, INPUT);
+                } catch (error) {
+                    expect.fail(`Should not have thrown '${error}'`);
+                }
+            }
+        });
+
+    });
+
 });
 
 // Private Objects -------------------------------------------------------

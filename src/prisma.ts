@@ -19,10 +19,18 @@ import logger from "./util/ServerLogger";
 const prisma = new PrismaClient({
 //    log: [ "query", "info", "warn", "error"],
 });
+let database = "UNKNOWN";
+if (process.env.DATABASE_URL) {
+    // NOTE: assumes a traditional DATABASE_URL format
+    const splits = process.env.DATABASE_URL.split("/");
+    if (splits.length > 0) {
+        database = splits[splits.length - 1];
+    }
+}
 logger.info({
     context: "Startup",
     msg: "Prisma client initialized",
-//    url: process.env.DATABASE_URL,
+    database: database,
 })
 
 export default prisma;

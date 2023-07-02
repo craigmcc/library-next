@@ -109,6 +109,38 @@ describe("LibraryActions Functional Tests", () => {
 
     });
 
+    // TODO: LibraryActions.authors()
+
+    describe("LibraryActions.exact()", () => {
+
+        it("should fail on invalid name", async () => {
+            const INVALID_NAME = "INVALID LIBRARY NAME";
+            try {
+                await LibraryActions.exact(INVALID_NAME);
+                expect.fail("Should have thrown NotFound");
+            } catch (error) {
+                if (error instanceof NotFound) {
+                    expect(error.message).includes(`Missing Library '${INVALID_NAME}'`);
+                } else {
+                    expect.fail(`Should not have thrown '${error}'`);
+                }
+            }
+        });
+
+        it("should pass on valid names", async () => {
+            for (const INPUT of SeedData.LIBRARIES) {
+                try {
+                    const OUTPUT =
+                        await LibraryActions.exact(INPUT.name);
+                    expect(OUTPUT.name).to.equal(INPUT.name);
+                } catch (error) {
+                    expect.fail(`Should not have thrown '${error}'`);
+                }
+            }
+        });
+
+    });
+
     describe("LibraryActions.find()", () => {
 
         it("should fail on invalid id", async () => {

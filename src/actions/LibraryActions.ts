@@ -110,6 +110,43 @@ export const all = async (options?: AllOptions): Promise<LibraryPlus[]> => {
 }
 
 /**
+ * Return the Library instance with the specified name, or throw NotFound.
+ *
+ * @param name                          Name of the requested Library
+ * @param options                       Optional include query parameters
+ *
+ * @throws NotFound                     If no such Library is found
+ * @throws ServerError                  If a low level error is thrown
+ */
+export const exact = async (name: string, options?: FindOptions): Promise<LibraryPlus> => {
+    try {
+        const result = await prisma.library.findUnique({
+            include: include(options),
+            where: {
+                name: name,
+            }
+        });
+        if (result) {
+            return result as LibraryPlus;
+        } else {
+            throw new NotFound(
+                `name: Missing Library '${name}'`,
+                "LibraryActions.exact",
+            )
+        }
+    } catch (error) {
+        if (error instanceof NotFound) {
+            throw error;
+        } else {
+            throw new ServerError(
+                error as Error,
+                "LibraryActions.exact",
+            )
+        }
+    }
+}
+
+/**
  * Return the Library instance with the specified libraryId, or throw NotFound.
  *
  * @param libraryId                     ID of the requested Library

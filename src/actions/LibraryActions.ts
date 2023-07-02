@@ -1,6 +1,6 @@
 "use server"
 
-// actions/LibraryActions.ts
+// src/actions/LibraryActions.ts
 
 /**
  * Server side actions for Library model objects.
@@ -18,6 +18,7 @@ import {
 // Internal Modules ----------------------------------------------------------
 
 import prisma from "../prisma";
+import {PaginationOptions} from "@/types/types";
 import {ServerError} from "../util/HttpErrors";
 
 // Public Types --------------------------------------------------------------
@@ -34,25 +35,67 @@ export type LibraryPlus = Library & Prisma.LibraryGetPayload<{
     }
 }>;
 
+/**
+ * The type for options of an "all" function for this model.
+ */
+export type AllOptions = IncludeOptions & MatchOptions & PaginationOptions;
+
+/**
+ * The type for options of a "find" (or related single result) function
+ * for this model.
+ */
+export type FindOptions = IncludeOptions;
+
+// Private Types -------------------------------------------------------------
+
+/**
+ * The type for options that select which child or parent models should be
+ * included in a response.
+ */
+type IncludeOptions = {
+    // Include child Authors?
+    withAuthors?: boolean;
+    // Include child Series?
+    withSeries?: boolean;
+    // Include child Stories?
+    withStories?: boolean;
+    // Include child Volumes?
+    withVolumes?: boolean;
+}
+
+
+/**
+ * The type for criteria that select which Library objects should be included
+ * in the response.
+ */
+type MatchOptions = {
+    // Whether to limit this response to Libraries with matching active values.
+    active?: boolean;
+    // The name (wildcard match) of the Libraries that should be returned.
+    name?: string;
+    // The scope (unique per Library) for authorizations for this Library.
+    scope?: string;
+}
+
 // Action CRUD Functions -----------------------------------------------------
 
 /**
  * Return all Library instances that match the specified criteria.
  *
- * @param query                         Optional match/include/pagination parameters
+ * @param options                       Optional match/include/pagination options
  *
  * @throws ServerError                  If a low level error is thrown
  */
-export const all = async (query?: any): Promise<LibraryPlus[]> => {
+export const all = async (options?: AllOptions): Promise<LibraryPlus[]> => {
     const args: Prisma.LibraryFindManyArgs = {
         // cursor???
         // distinct???
-        include: include(query),
-        orderBy: orderBy(query),
-        select: select(query),
-        skip: skip(query),
-        take: take(query),
-        where: where(query),
+        include: include(options),
+        orderBy: orderBy(options),
+        select: select(options),
+        skip: skip(options),
+        take: take(options),
+        where: where(options),
     }
     try {
         const results = await prisma.library.findMany(args);
@@ -69,23 +112,23 @@ export const all = async (query?: any): Promise<LibraryPlus[]> => {
 
 /**
  * Calculate and return the "include" options from the specified query
- * parameters, if any were specified.
+ * options, if any were specified.
  */
-export const include = (query?: any): Prisma.LibraryInclude | undefined => {
-    if (!query) {
+export const include = (options?: IncludeOptions): Prisma.LibraryInclude | undefined => {
+    if (!options) {
         return undefined;
     }
     const include: Prisma.LibraryInclude = {};
-    if (query.hasOwnProperty("withAuthors")) {
+    if (options.withAuthors) {
         include.authors = true;
     }
-    if (query.hasOwnProperty("withSeries")) {
+    if (options.withSeries) {
         include.series = true;
     }
-    if (query.hasOwnProperty("withStories")) {
+    if (options.withStories) {
         include.stories = true;
     }
-    if (query.hasOwnProperty("withVolumes")) {
+    if (options.withVolumes) {
         include.volumes = true;
     }
     if (Object.keys(include).length > 0) {
@@ -114,38 +157,24 @@ export const select = (query?: any): Prisma.LibrarySelect | undefined => {
 }
 
 /**
- * Calculate and return the "skip" options from the specified query
- * parameters, if any were specified.
- *
- * For backwards compatibility, either "offset" or "skip" are recognized.
+ * Calculate and return the "skip" options (pre-Prisma called "offset")
+ * from the specified query options, if any were specified.
  */
-export const skip = (query?: any): number | undefined => {
-    if (!query) {
-        return undefined;
-    }
-    if (query.hasOwnProperty("offset")) {
-        return Number(query.offset);
-    } else if (query.hasOwnProperty("skip")) {
-        return Number(query.skip);
+export const skip = (options?: PaginationOptions): number | undefined => {
+    if (options?.offset) {
+        return Number(options.offset);
     } else {
         return undefined;
     }
 }
 
 /**
- * Calculate and return the "take" options from the specified query
- * parameters, if any were specified.
- *
- * For backwards compatibility, either "limit" or "take" are recognized.
+ * Calculate and return the "take" options (pre-prisma called "limit")
+ * from the specified query options, if any were specified.
  */
-export const take = (query?: any): number | undefined => {
-    if (!query) {
-        return undefined;
-    }
-    if (query.hasOwnProperty("limit")) {
-        return Number(query.limit);
-    } else if (query.hasOwnProperty("take")) {
-        return Number(query.take);
+export const take = (options?: PaginationOptions): number | undefined => {
+    if (options?.limit) {
+        return Number(options.limit);
     } else {
         return undefined;
     }
@@ -154,24 +183,26 @@ export const take = (query?: any): number | undefined => {
 /**
  * Calculate and return the "where" options from the specified query
  * parameters, if any were specified.
+ *
+ * @param options                       MatchOptions relevant for this model
  */
-export const where = (query?: any): Prisma.LibraryWhereInput | undefined => {
-    if (!query) {
+export const where = (options?: MatchOptions): Prisma.LibraryWhereInput | undefined => {
+    if (!options) {
         return undefined;
     }
     const where: Prisma.LibraryWhereInput = {};
-    if (query.hasOwnProperty("active")) {
-        where.active = true;
+    if (typeof options.active !== undefined) {
+        where.active = options.active;
     }
-    if (query.hasOwnProperty("name")) {
-        where.name = {              // TODO - verify that this does an "ilike"
-            contains: query.name,
+    if (options.name) {
+        where.name = {
+            contains: options.name,
             mode: "insensitive",
         }
     }
-    if (query.hasOwnProperty("scope")) {
+    if (options.scope) {
         where.scope = {
-            equals: query.scope,
+            equals: options.scope,
         }
     }
     if (Object.keys(where).length > 0) {

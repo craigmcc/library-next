@@ -1,4 +1,18 @@
+// app/page.tsx
+
+/**
+ * Home page for this application.
+ *
+ * @packageDocumentation
+ */
+
+// External Modules ----------------------------------------------------------
+
 import Image from 'next/image'
+
+// Internal Modules ----------------------------------------------------------
+
+// Public Objects ------------------------------------------------------------
 
 export default function Home() {
   return (

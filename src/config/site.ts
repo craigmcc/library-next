@@ -10,6 +10,9 @@ export type SiteConfig = typeof siteConfig;
 
 export const siteConfig = {
     description: "Library Management Application based on NextJS",
+    links: {
+        github: "https://github.com/craigmcc/library-next"
+    },
     mainNav: [
         {
             title: "Home",
